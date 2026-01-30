@@ -28,18 +28,19 @@ function parseComponentName(fullName: string): string {
 }
 
 // Get component name from selected node
-function getComponentName(node: SceneNode): string | null {
+// Returns an object with the name and whether it's a component
+function getComponentName(node: SceneNode): { name: string; isComponent: boolean } | null {
   // Check if it's a component instance
   if (node.type === 'INSTANCE') {
     const componentNode = node.mainComponent;
     if (componentNode) {
-      return componentNode.name;
+      return { name: componentNode.name, isComponent: true };
     }
   }
 
   // Check if it's a component itself
   if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
-    return node.name;
+    return { name: node.name, isComponent: true };
   }
 
   // Check if parent is a component (for nested selections)
@@ -48,13 +49,18 @@ function getComponentName(node: SceneNode): string | null {
     if (parent.type === 'INSTANCE') {
       const componentNode = parent.mainComponent;
       if (componentNode) {
-        return componentNode.name;
+        return { name: componentNode.name, isComponent: true };
       }
     }
     if (parent.type === 'COMPONENT' || parent.type === 'COMPONENT_SET') {
-      return parent.name;
+      return { name: parent.name, isComponent: true };
     }
     parent = parent.parent;
+  }
+
+  // Fallback: use the layer's own name
+  if ('name' in node && node.name) {
+    return { name: node.name, isComponent: false };
   }
 
   return null;
@@ -77,18 +83,19 @@ async function handleSelectionChange() {
 
   // Get the first selected node
   const node = selection[0];
-  const componentName = getComponentName(node);
+  const result = getComponentName(node);
 
-  if (componentName) {
-    const parsedName = parseComponentName(componentName);
+  if (result) {
+    const parsedName = parseComponentName(result.name);
     figma.ui.postMessage({
       type: 'selection-change',
       componentName: parsedName,
-      fullComponentName: componentName,
+      fullComponentName: result.name,
+      isComponent: result.isComponent,
       storybookBaseUrl
     });
   } else {
-    // Selected node is not a component
+    // Selected node has no name
     figma.ui.postMessage({
       type: 'selection-change',
       componentName: null,

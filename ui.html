@@ -217,7 +217,7 @@
       <iframe id="storybook-preview" class="hidden" frameborder="0"></iframe>
 
       <div id="empty-state">
-        <p>Select a component to view its Storybook link</p>
+        <p>Select a layer or component to search in Storybook</p>
       </div>
     </div>
 
@@ -244,7 +244,7 @@
     }
 
     // Update UI with component information
-    function updateUI(componentName, fullComponentName, storybookBaseUrl) {
+    function updateUI(componentName, fullComponentName, isComponent, storybookBaseUrl) {
       const componentInfo = document.getElementById('component-info');
       const componentNameEl = document.getElementById('component-name');
       const fullComponentNameEl = document.getElementById('full-component-name');
@@ -257,7 +257,14 @@
         const storybookUrl = generateStorybookSearchUrl(storybookBaseUrl, componentName);
 
         componentNameEl.textContent = `Searching for: ${componentName}`;
-        fullComponentNameEl.textContent = `Component: ${fullComponentName}`;
+
+        // Show different text based on whether it's a component or layer
+        if (isComponent) {
+          fullComponentNameEl.textContent = `Component: ${fullComponentName}`;
+        } else {
+          fullComponentNameEl.textContent = `Layer: ${fullComponentName}`;
+        }
+
         storybookLink.href = storybookUrl;
         storybookPreview.src = storybookUrl;
 
@@ -278,7 +285,7 @@
 
       if (msg.type === 'selection-change') {
         currentStorybookBaseUrl = msg.storybookBaseUrl;
-        updateUI(msg.componentName, msg.fullComponentName, msg.storybookBaseUrl);
+        updateUI(msg.componentName, msg.fullComponentName, msg.isComponent, msg.storybookBaseUrl);
       } else if (msg.type === 'settings-loaded') {
         currentStorybookBaseUrl = msg.storybookBaseUrl;
         document.getElementById('storybook-url').value = msg.storybookBaseUrl;
