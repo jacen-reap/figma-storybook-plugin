@@ -78,8 +78,26 @@
     }
 
     #storybook-link {
-      display: block;
+      display: inline-block;
+      color: #18a0fb;
       text-decoration: none;
+      font-size: 12px;
+      margin-bottom: 12px;
+      transition: color 0.2s;
+    }
+
+    #storybook-link:hover {
+      color: #0d7fc2;
+      text-decoration: underline;
+    }
+
+    #storybook-preview {
+      width: 100%;
+      flex: 1;
+      border: 1px solid #e5e5e5;
+      border-radius: 4px;
+      min-height: 400px;
+      background: #f9f9f9;
     }
 
     #empty-state {
@@ -193,10 +211,10 @@
       <div id="component-info" class="hidden">
         <p id="full-component-name"></p>
         <p id="component-name"></p>
-        <a id="storybook-link" href="#" target="_blank">
-          <button class="primary" style="width: 100%; margin-top: 16px;">Open in Storybook →</button>
-        </a>
+        <a id="storybook-link" href="#" target="_blank">Open in Storybook →</a>
       </div>
+
+      <iframe id="storybook-preview" class="hidden" frameborder="0"></iframe>
 
       <div id="empty-state">
         <p>Select a layer or component to search in Storybook</p>
@@ -314,6 +332,7 @@
       const componentNameEl = document.getElementById('component-name');
       const fullComponentNameEl = document.getElementById('full-component-name');
       const storybookLink = document.getElementById('storybook-link');
+      const storybookPreview = document.getElementById('storybook-preview');
       const emptyState = document.getElementById('empty-state');
 
       if (componentName) {
@@ -328,6 +347,7 @@
         }
 
         componentInfo.classList.remove('hidden');
+        storybookPreview.classList.add('hidden');
         emptyState.classList.add('hidden');
 
         // Generate Storybook URL (async)
@@ -343,9 +363,13 @@
         }
 
         storybookLink.href = result.url;
+        storybookPreview.src = result.url;
+
+        storybookPreview.classList.remove('hidden');
       } else {
         // Show empty state
         componentInfo.classList.add('hidden');
+        storybookPreview.classList.add('hidden');
         emptyState.classList.remove('hidden');
       }
     }
