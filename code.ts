@@ -28,15 +28,15 @@ function parseComponentName(fullName: string): string {
 }
 
 // Helper function to find component instances in children (recursive)
-function findComponentInstance(node: BaseNode): ComponentNode | null {
-  // Check if this node is a component instance
-  if (node.type === 'INSTANCE' && node.mainComponent) {
-    return node.mainComponent;
+function findComponentInstance(node: BaseNode): { name: string; isComponent: boolean } | null {
+  // Check if this node is a component instance - use the instance's name
+  if (node.type === 'INSTANCE') {
+    return { name: node.name, isComponent: true };
   }
 
   // Check if this node is a component itself
   if (node.type === 'COMPONENT') {
-    return node;
+    return { name: node.name, isComponent: true };
   }
 
   // If this node can have children, search through them
@@ -56,11 +56,9 @@ function findComponentInstance(node: BaseNode): ComponentNode | null {
 // Returns an object with the name and whether it's a component
 function getComponentName(node: SceneNode): { name: string; isComponent: boolean } | null {
   // Priority 1: Check if the selected node itself is a component instance
+  // Use the instance's name, not the main component name
   if (node.type === 'INSTANCE') {
-    const componentNode = node.mainComponent;
-    if (componentNode) {
-      return { name: componentNode.name, isComponent: true };
-    }
+    return { name: node.name, isComponent: true };
   }
 
   // Priority 2: Check if it's a component definition itself
@@ -72,10 +70,8 @@ function getComponentName(node: SceneNode): { name: string; isComponent: boolean
   let parent = node.parent;
   while (parent && parent.type !== 'PAGE') {
     if (parent.type === 'INSTANCE') {
-      const componentNode = parent.mainComponent;
-      if (componentNode) {
-        return { name: componentNode.name, isComponent: true };
-      }
+      // Use the instance's name
+      return { name: parent.name, isComponent: true };
     }
     if (parent.type === 'COMPONENT' || parent.type === 'COMPONENT_SET') {
       return { name: parent.name, isComponent: true };
@@ -85,9 +81,9 @@ function getComponentName(node: SceneNode): { name: string; isComponent: boolean
 
   // Priority 4: If it's a frame/group, check if it contains component instances
   if ('children' in node && node.children && node.children.length > 0) {
-    const componentNode = findComponentInstance(node);
-    if (componentNode) {
-      return { name: componentNode.name, isComponent: true };
+    const result = findComponentInstance(node);
+    if (result) {
+      return result;
     }
   }
 
