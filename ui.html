@@ -235,16 +235,99 @@
   <script>
     let currentStorybookBaseUrl = 'https://design.reap.global/';
 
-    // Generate Storybook search URL
-    function generateStorybookSearchUrl(baseUrl, componentName) {
-      // Remove trailing slash if present
+    // Cache for Storybook index
+    let storybookIndexCache = null;
+    let storybookIndexCacheTime = 0;
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+    // Fetch Storybook index/stories
+    async function fetchStorybookIndex(baseUrl) {
+      const now = Date.now();
+
+      // Return cached version if still valid
+      if (storybookIndexCache && (now - storybookIndexCacheTime) < CACHE_DURATION) {
+        return storybookIndexCache;
+      }
+
       const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-      const searchQuery = encodeURIComponent(componentName);
-      return `${cleanBaseUrl}?search=${searchQuery}`;
+
+      try {
+        // Try to fetch index.json (Storybook 7+) or stories.json (older versions)
+        let response = await fetch(`${cleanBaseUrl}/index.json`);
+
+        if (!response.ok) {
+          response = await fetch(`${cleanBaseUrl}/stories.json`);
+        }
+
+        if (response.ok) {
+          const data = await response.json();
+          storybookIndexCache = data;
+          storybookIndexCacheTime = now;
+          return data;
+        }
+      } catch (error) {
+        console.error('Failed to fetch Storybook index:', error);
+      }
+
+      return null;
+    }
+
+    // Search for component in Storybook index
+    function searchStorybookIndex(index, searchTerm) {
+      if (!index || !index.entries) {
+        return null;
+      }
+
+      const searchLower = searchTerm.toLowerCase();
+
+      // Search through all stories
+      for (const [id, story] of Object.entries(index.entries)) {
+        const title = (story.title || '').toLowerCase();
+        const name = (story.name || '').toLowerCase();
+
+        // Check if story matches search term
+        if (title.includes(searchLower) || name.includes(searchLower) || id.includes(searchLower)) {
+          return { id, story };
+        }
+      }
+
+      return null;
+    }
+
+    // Generate Storybook URL - now async to fetch index
+    async function generateStorybookSearchUrl(baseUrl, componentName) {
+      const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+
+      try {
+        // Fetch Storybook index
+        const index = await fetchStorybookIndex(baseUrl);
+
+        if (index) {
+          // Search for first matching story
+          const match = searchStorybookIndex(index, componentName);
+
+          if (match) {
+            // Construct URL to the matched story
+            return {
+              url: `${cleanBaseUrl}?path=/story/${match.id}`,
+              found: true,
+              storyTitle: match.story.title
+            };
+          }
+        }
+      } catch (error) {
+        console.error('Error generating Storybook URL:', error);
+      }
+
+      // Fallback: open to base URL
+      return {
+        url: cleanBaseUrl,
+        found: false
+      };
     }
 
     // Update UI with component information
-    function updateUI(componentName, fullComponentName, isComponent, storybookBaseUrl) {
+    async function updateUI(componentName, fullComponentName, isComponent, storybookBaseUrl) {
       const componentInfo = document.getElementById('component-info');
       const componentNameEl = document.getElementById('component-name');
       const fullComponentNameEl = document.getElementById('full-component-name');
@@ -253,10 +336,8 @@
       const emptyState = document.getElementById('empty-state');
 
       if (componentName) {
-        // Show component info
-        const storybookUrl = generateStorybookSearchUrl(storybookBaseUrl, componentName);
-
-        componentNameEl.textContent = `Searching for: ${componentName}`;
+        // Show loading state
+        componentNameEl.textContent = `Searching for: ${componentName}...`;
 
         // Show different text based on whether it's a component or layer
         if (isComponent) {
@@ -265,12 +346,26 @@
           fullComponentNameEl.textContent = `Layer: ${fullComponentName}`;
         }
 
-        storybookLink.href = storybookUrl;
-        storybookPreview.src = storybookUrl;
-
         componentInfo.classList.remove('hidden');
-        storybookPreview.classList.remove('hidden');
+        storybookPreview.classList.add('hidden');
         emptyState.classList.add('hidden');
+
+        // Generate Storybook URL (async)
+        const result = await generateStorybookSearchUrl(storybookBaseUrl, componentName);
+
+        if (result.found) {
+          componentNameEl.textContent = `Found: ${componentName}`;
+          if (result.storyTitle) {
+            componentNameEl.textContent = `Found: ${result.storyTitle}`;
+          }
+        } else {
+          componentNameEl.textContent = `Searching for: ${componentName} (no exact match found)`;
+        }
+
+        storybookLink.href = result.url;
+        storybookPreview.src = result.url;
+
+        storybookPreview.classList.remove('hidden');
       } else {
         // Show empty state
         componentInfo.classList.add('hidden');
