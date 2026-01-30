@@ -27,10 +27,35 @@ function parseComponentName(fullName: string): string {
   return name;
 }
 
+// Helper function to find component instances in children (recursive)
+function findComponentInstance(node: BaseNode): ComponentNode | null {
+  // Check if this node is a component instance
+  if (node.type === 'INSTANCE' && node.mainComponent) {
+    return node.mainComponent;
+  }
+
+  // Check if this node is a component itself
+  if (node.type === 'COMPONENT') {
+    return node;
+  }
+
+  // If this node can have children, search through them
+  if ('children' in node && node.children) {
+    for (const child of node.children) {
+      const found = findComponentInstance(child);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return null;
+}
+
 // Get component name from selected node
 // Returns an object with the name and whether it's a component
 function getComponentName(node: SceneNode): { name: string; isComponent: boolean } | null {
-  // Check if it's a component instance
+  // Priority 1: Check if the selected node itself is a component instance
   if (node.type === 'INSTANCE') {
     const componentNode = node.mainComponent;
     if (componentNode) {
@@ -38,12 +63,12 @@ function getComponentName(node: SceneNode): { name: string; isComponent: boolean
     }
   }
 
-  // Check if it's a component itself
+  // Priority 2: Check if it's a component definition itself
   if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
     return { name: node.name, isComponent: true };
   }
 
-  // Check if parent is a component (for nested selections)
+  // Priority 3: If it's a layer inside a component, walk up to find the component
   let parent = node.parent;
   while (parent && parent.type !== 'PAGE') {
     if (parent.type === 'INSTANCE') {
@@ -58,7 +83,15 @@ function getComponentName(node: SceneNode): { name: string; isComponent: boolean
     parent = parent.parent;
   }
 
-  // Fallback: use the layer's own name
+  // Priority 4: If it's a frame/group, check if it contains component instances
+  if ('children' in node && node.children && node.children.length > 0) {
+    const componentNode = findComponentInstance(node);
+    if (componentNode) {
+      return { name: componentNode.name, isComponent: true };
+    }
+  }
+
+  // Priority 5: Use the layer's own name as fallback
   if ('name' in node && node.name) {
     return { name: node.name, isComponent: false };
   }
