@@ -1,0 +1,22 @@
+{
+  "name": "figma-storybook-inspector",
+  "version": "1.0.0",
+  "description": "A Figma plugin that provides links to Storybook components when developers inspect designs",
+  "main": "code.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "keywords": [
+    "figma",
+    "plugin",
+    "storybook",
+    "design-systems"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.98.0",
+    "typescript": "^5.3.3"
+  }
+}
