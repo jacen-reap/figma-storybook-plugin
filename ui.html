@@ -214,7 +214,15 @@
         <a id="storybook-link" href="#" target="_blank">Open in Storybook →</a>
       </div>
 
-      <iframe id="storybook-preview" class="hidden" frameborder="0"></iframe>
+      <iframe
+        id="storybook-preview"
+        class="hidden"
+        frameborder="0"
+        title="Storybook Preview"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        loading="lazy"
+        tabindex="-1"
+      ></iframe>
 
       <div id="empty-state">
         <p>Select a layer or component to search in Storybook</p>
@@ -363,9 +371,16 @@
         }
 
         storybookLink.href = result.url;
-        storybookPreview.src = result.url;
 
+        // Set iframe src and prevent it from stealing focus
+        storybookPreview.src = result.url;
         storybookPreview.classList.remove('hidden');
+
+        // Blur the iframe immediately to prevent focus conflicts with Figma's UI
+        storybookPreview.addEventListener('load', function blurIframe() {
+          storybookPreview.blur();
+          storybookPreview.removeEventListener('load', blurIframe);
+        }, { once: true });
       } else {
         // Show empty state
         componentInfo.classList.add('hidden');
