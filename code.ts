@@ -137,7 +137,7 @@ async function handleSelectionChange() {
 async function init() {
   // Show UI
   figma.showUI(__html__, {
-    width: 400,
+    width: 560,
     height: 600,
     title: 'Storybook Inspector'
   });
