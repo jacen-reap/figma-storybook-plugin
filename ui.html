@@ -299,20 +299,35 @@
         if (title.includes(searchLower) || name.includes(searchLower) || idLower.includes(searchLower)) {
           let score = 0;
 
+          // Extract the component name from title (last segment of path)
+          // e.g., "Elements/Badge" → "badge", "Modules/Tabs/Default" → "default"
+          const titleSegments = title.split('/');
+          const componentName = titleSegments[titleSegments.length - 1];
+
+          // HIGHEST PRIORITY: Component name matches search term exactly
+          if (componentName === searchLower) score += 50;
+          // HIGH PRIORITY: Component name contains search term
+          else if (componentName.includes(searchLower)) score += 30;
+
+          // HIGH PRIORITY: ID starts with search term (e.g., "elements-badge--docs" starts with category-component)
+          if (idLower.startsWith(searchLower) || idLower.startsWith(`elements-${searchLower}`) || idLower.startsWith(`modules-${searchLower}`)) {
+            score += 25;
+          }
+
           // Prefer docs over stories
           if (story.type === 'docs') score += 5;
 
-          // Prefer variant-specific entries (contain variant names like "default", "primary")
-          // These have IDs like "modules-tabs-default--docs" vs "modules-tabs--docs"
-          const hasVariant = /--\w+--/.test(id) || /-default-|-primary-|-secondary-/.test(id);
-          if (hasVariant) score += 10;
+          // Prefer variant-specific entries (but only if component name matches)
+          // This prevents "Tabs With Badges" from scoring higher than "Badge"
+          if (componentName.includes(searchLower)) {
+            const hasVariant = /-default--|-primary--|-secondary--/.test(id);
+            if (hasVariant) score += 3;
+          }
 
-          // Prefer "default" variant
-          if (id.includes('-default')) score += 3;
-
-          // Exact matches get higher score
-          if (title === searchLower || name === searchLower) score += 3;
-          else score += 1; // Partial match
+          // Exact title match (rare but highest priority if it happens)
+          if (title === searchLower || name === searchLower) score += 10;
+          // Partial match in name only (lowest priority)
+          else if (name.includes(searchLower) && !title.includes(searchLower)) score += 1;
 
           matches.push({ id, story, score });
         }
