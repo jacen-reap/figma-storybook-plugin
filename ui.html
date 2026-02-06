@@ -280,23 +280,48 @@
       return null;
     }
 
-    // Search for component in Storybook index
+    // Search for component in Storybook index with intelligent scoring
     function searchStorybookIndex(index, searchTerm) {
       if (!index || !index.entries) {
         return null;
       }
 
       const searchLower = searchTerm.toLowerCase();
+      const matches = [];
 
-      // Search through all stories
+      // Collect all matching stories with scores
       for (const [id, story] of Object.entries(index.entries)) {
         const title = (story.title || '').toLowerCase();
         const name = (story.name || '').toLowerCase();
+        const idLower = id.toLowerCase();
 
         // Check if story matches search term
-        if (title.includes(searchLower) || name.includes(searchLower) || id.includes(searchLower)) {
-          return { id, story };
+        if (title.includes(searchLower) || name.includes(searchLower) || idLower.includes(searchLower)) {
+          let score = 0;
+
+          // Prefer docs over stories
+          if (story.type === 'docs') score += 5;
+
+          // Prefer variant-specific entries (contain variant names like "default", "primary")
+          // These have IDs like "modules-tabs-default--docs" vs "modules-tabs--docs"
+          const hasVariant = /--\w+--/.test(id) || /-default-|-primary-|-secondary-/.test(id);
+          if (hasVariant) score += 10;
+
+          // Prefer "default" variant
+          if (id.includes('-default')) score += 3;
+
+          // Exact matches get higher score
+          if (title === searchLower || name === searchLower) score += 3;
+          else score += 1; // Partial match
+
+          matches.push({ id, story, score });
         }
+      }
+
+      // Return highest scoring match
+      if (matches.length > 0) {
+        matches.sort((a, b) => b.score - a.score);
+        return matches[0];
       }
 
       return null;
@@ -315,9 +340,10 @@
           const match = searchStorybookIndex(index, componentName);
 
           if (match) {
-            // Construct URL to the matched story
+            // Construct URL to the matched story using the correct path type
+            const pathType = match.story.type === 'docs' ? 'docs' : 'story';
             return {
-              url: `${cleanBaseUrl}?path=/story/${match.id}`,
+              url: `${cleanBaseUrl}?path=/${pathType}/${match.id}`,
               found: true,
               storyTitle: match.story.title
             };
