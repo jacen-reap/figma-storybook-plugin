@@ -169,7 +169,5 @@ async function init() {
   };
 }
 
-// Handle menu command
-if (figma.command === 'open' || figma.command === '') {
-  init();
-}
+// Start the plugin
+init();

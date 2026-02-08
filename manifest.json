@@ -4,15 +4,10 @@
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
-  "editorType": ["figma", "figjam", "dev"],
+  "editorType": ["figma", "dev"],
+  "capabilities": ["inspect", "vscode"],
   "documentAccess": "dynamic-page",
   "networkAccess": {
     "allowedDomains": ["https://design.reap.global"]
-  },
-  "menu": [
-    {
-      "name": "Open Storybook Inspector",
-      "command": "open"
-    }
-  ]
+  }
 }
